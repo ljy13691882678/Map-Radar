@@ -45,10 +45,12 @@ tasks.register<Jar>("fatJar") {
         attributes["Main-Class"] = "com.unicorn.desktop.MainKt"
     }
 
-    // 把 jvm 编译产物 + jvm 所有 runtime 依赖（包括 Compose Desktop 原生库）合并
-    val jvmMain by kotlin.sourceSets
-    from(jvmMain.output)
-    from(kotlin.jvm().compilations["main"].runtimeDependencyFiles)
+    // kotlin.jvm() 返回 KotlinJvmTarget。compilations["main"] 是 main compilation。
+    // compilation.output 拿到编译产物（classes dir + resources）
+    // compilation.runtimeDependencyFiles 拿到所有依赖（包括 Compose Desktop native 库）
+    val mainCompilation = kotlin.jvm().compilations["main"]
+    from(mainCompilation.output)
+    from(mainCompilation.runtimeDependencyFiles)
 
     // 处理元信息冲突 —— 同名 META-INF 文件保留第一个
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
