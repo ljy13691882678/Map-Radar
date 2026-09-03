@@ -19,13 +19,12 @@ jobs:
           java-version: 17
           cache: gradle
 
-      # 自动生成/校验 Gradle Wrapper；若仓库不含 wrapper 则自动下载标准 gradlew + gradle-wrapper.jar
-      - name: Setup Gradle
+      - name: Setup Gradle (wrapper + cache)
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-          generate-wrapper: true
-          wrapper-validate-url: ''  # 跳过远端校验（避免 wrapper jar 下载失败卡住）
+          # 仓库自带 gradle-wrapper.jar / gradlew，setup-gradle 会自动识别并加速
+          # 不写 generate-wrapper / wrapper-validate-url，因为 v4 不支持这两个参数
+          validate-wrappers: true
 
       - name: Install Android SDK
         run: |
@@ -36,7 +35,6 @@ jobs:
           curl -sL -o cmdline.zip \
             "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
           unzip -q cmdline.zip -d "$ANDROID_HOME/cmdline-tools"
-          # 需要一层 "latest" 目录套住 cmdline-tools，sdkmanager 才能识别
           if [ -d "$ANDROID_HOME/cmdline-tools/cmdline-tools" ]; then
             mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
           fi
@@ -48,12 +46,10 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Build sender APK (A 机)
-        run: |
-          ./gradlew :sender:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :sender:assembleDebug --no-daemon --stacktrace
 
       - name: Build receiver APK (B 机)
-        run: |
-          ./gradlew :receiver:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :receiver:assembleDebug --no-daemon --stacktrace
 
       - name: Upload sender APK
         uses: actions/upload-artifact@v4

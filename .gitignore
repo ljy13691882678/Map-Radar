@@ -4,6 +4,8 @@ build/
 **/build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+!/gradlew
+!/gradlew.bat
 
 # IntelliJ / Android Studio
 .idea/
@@ -37,6 +39,3 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
-
-# Gradle wrapper JAR 二进制（走 CI 的 setup-gradle 自动生成，不入库）
-gradle/wrapper/*.jar
