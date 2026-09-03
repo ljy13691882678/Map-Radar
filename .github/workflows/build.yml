@@ -18,17 +18,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 【关键】关掉 setup-java 的 gradle 缓存 + setup-gradle 的 gradle home 缓存。
-      # 否则 CI runner 上 ~/.gradle/wrapper/dists/gradle-8.9-bin/... 是旧 run 残留，
-      # ./gradlew 会直接捞旧的 8.9 版本（它根本不看我们刚改的 gradle-wrapper.properties），
-      # 导致版本目录报错无限循环。关掉缓存让 wrapper 老老实实按 distributionUrl 下载 9.7.1。
-      - name: Clean Gradle home (force wrapper re-download)
-        run: rm -rf ~/.gradle
+      # 不再用 gradle/actions/setup-gradle@v4 —— 它内部会强行对 wrapper jar
+      # 做 SHA256 校验（validate-wrappers 参数在 v4 里根本不认），而且会从它自己
+      # 的 action cache 把旧的 gradle-8.9 zip 解回去，让我们改过的 wrapper 永远
+      # 不生效。我们就用仓库里自洽的 gradlew + gradle-wrapper.jar。
 
-      - name: Setup Gradle (wrapper only, no cache)
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-cleanup: false
+      - name: Verify wrapper works (should print Gradle 9.7.1)
+        run: ./gradlew --version
 
       - name: Install Android SDK
         run: |
@@ -48,9 +44,6 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-
-      - name: Verify Gradle 9.7.1 before build
-        run: ./gradlew --version 2>&1 | head -15
 
       - name: Build sender APK (A 机)
         run: ./gradlew :sender:assembleDebug --no-daemon --stacktrace
