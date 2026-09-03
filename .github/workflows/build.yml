@@ -19,12 +19,12 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Setup Gradle (wrapper + cache)
+      - name: Setup Gradle (cache only)
         uses: gradle/actions/setup-gradle@v4
         with:
-          # 仓库自带 gradle-wrapper.jar / gradlew，setup-gradle 会自动识别并加速
-          # 不写 generate-wrapper / wrapper-validate-url，因为 v4 不支持这两个参数
-          validate-wrappers: true
+          # 仓库自带 gradle-wrapper.jar / gradlew / gradle-wrapper.properties
+          # （Gradle 9.7.1），setup-gradle 只负责缓存加速
+          validate-wrappers: false
 
       - name: Install Android SDK
         run: |
