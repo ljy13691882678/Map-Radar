@@ -1,0 +1,42 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Android
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.log
+*.keystore
+*.jks
+*.tmp
+*.bak
+*.swp
+
+# Kotlin
+*.kotlin_module
+
+# Misc
+.vertx/
+*.pid
+*.seed
+*.hprof
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Gradle wrapper JAR 二进制（走 CI 的 setup-gradle 自动生成，不入库）
+gradle/wrapper/*.jar
