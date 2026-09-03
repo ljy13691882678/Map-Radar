@@ -9,17 +9,16 @@ plugins {
 
 kotlin {
     jvm()
-
-    // JVM 目标，和 Android 一样用 Java 17
     jvmToolchain(17)
 
     sourceSets {
         val jvmMain by getting {
             dependencies {
+                // compose.desktop.currentOs 会自动引入 Compose Desktop runtime + 当前 OS 的 native 依赖
+                // compose.material3 会 pull in compose.ui + compose.ui-graphics + compose.material3 + compose.material-icons
                 implementation(compose.desktop.currentOs)
                 implementation(compose.material3)
-                implementation(compose.ui)
-                implementation(compose.ui.graphics)
+
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.kotlinx.coroutines.core)
             }
@@ -27,7 +26,7 @@ kotlin {
     }
 }
 
-// Compose Desktop 应用打包
+// Compose Desktop 原生打包（Windows: .exe/.msi / macOS: .dmg / Linux: .deb/.rpm）
 compose.desktop {
     application {
         mainClass = "com.unicorn.desktop.MainKt"
@@ -39,18 +38,14 @@ compose.desktop {
     }
 }
 
-// 为了给 Windows 用户一个即开即用的 artifact，额外生成一个 fat-jar：
-//   ./gradlew desktop:shadowJar  →  desktop/build/libs/desktop-*-all.jar
-// 用户在 Windows 上 `java -jar desktop-*-all.jar` 即可。
-// shadowJar 任务配置
+// shadowJar —— 为 Windows 用户打一个 fat-jar，便于 java -jar 直接跑
+// compose.desktop 自己有 distZip，但我们要更轻的 fat-jar
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>().configureEach {
     archiveBaseName.set("unicorn-desktop-receiver")
     archiveClassifier.set("all")
     archiveVersion.set("0.1.0")
-    // 指定入口（没有这个，java -jar 会报 no main manifest attribute）
     manifest {
         attributes["Main-Class"] = "com.unicorn.desktop.MainKt"
     }
-    // 排除一些冲突的 META-INF
     mergeServiceFiles()
 }
