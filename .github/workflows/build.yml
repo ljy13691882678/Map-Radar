@@ -5,6 +5,16 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# 关键：用 JOB 级别 env 覆盖 runner 默认的 ANDROID_SDK_ROOT/ANDROID_HOME
+# runner 默认自带 /usr/local/lib/android/sdk 并且 export 了两个变量，
+# 但我们的新 SDK 装在 $HOME/android-sdk。AGP 8.5 禁止 ANDROID_HOME 和
+# ANDROID_SDK_ROOT 同时存在且值不同，所以这里必须用 job-level env 把
+# 两者都设成同一个新路径，让 runner 默认值被完全覆盖。
+env:
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+  JAVA_HOME: ${{ github.workspace }}/jdk17
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,35 +22,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 关键：AGP 8.5 禁止同时存在 ANDROID_HOME 和 ANDROID_SDK_ROOT 且值不同
-      # ubuntu-latest runner 自带 /usr/local/lib/android/sdk 并 export 了
-      # ANDROID_SDK_ROOT，我们必须把它 unset 掉，只保留一个 SDK 路径
-      - name: Unset conflicting Android env vars
-        run: |
-          echo "== before =="
-          env | grep -i android || true
-          unset ANDROID_SDK_ROOT
-          unset ANDROID_HOME
-          echo "ANDROID_HOME=$HOME/android-sdk" >> "$GITHUB_ENV"
-          echo "== after =="
-          env | grep -i android || true
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+          path: ${{ github.workspace }}/jdk17
 
-      - name: Install Android SDK (shared ANDROID_HOME)
+      - name: Install Android SDK
         run: |
           set -e
-          export ANDROID_HOME="$HOME/android-sdk"
+          ls -la "$ANDROID_HOME" || true
           mkdir -p "$ANDROID_HOME/cmdline-tools"
           cd /tmp
           curl -sL -o cmdline.zip \
             "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
           unzip -q cmdline.zip -d "$ANDROID_HOME/cmdline-tools"
-          # Gradle 8.9 自带的 :sdkmanager 需要 cmdline-tools/latest/ 结构
           if [ -d "$ANDROID_HOME/cmdline-tools/cmdline-tools" ]; then
             mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
           fi
@@ -49,10 +46,17 @@ jobs:
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0"
-          echo "=== SDK tree ==="
+          echo "=== installed ==="
           ls "$ANDROID_HOME"
 
-      - name: Verify wrapper (should print Gradle 8.9)
+      - name: Verify env (ANDROID_HOME == ANDROID_SDK_ROOT)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "JAVA_HOME=$JAVA_HOME"
+          [ "$ANDROID_HOME" = "$ANDROID_SDK_ROOT" ] || { echo "❌ mismatch!"; exit 1; }
+
+      - name: Verify wrapper
         run: ./gradlew --version
 
       - name: Build sender APK (A 机)
