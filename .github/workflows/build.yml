@@ -92,24 +92,25 @@ jobs:
       - name: Build Windows installer (EXE + MSI)
         # packageDistributionForCurrentOS —— Compose Desktop plugin 自动生成的任务
         # 会产出 nativeDistributions 里 targetFormats(TargetFormat.Msi, TargetFormat.Exe) 指定的所有格式
+        # 产物位置：desktop/build/compose/binaries/main/{exe,msi}/UnicornDesktopReceiver-1.1.0.{exe,msi}
         run: |
           ./gradlew :desktop:packageDistributionForCurrentOS --no-daemon --stacktrace
           echo "=== dist output ==="
-          ls -Recurse desktop\build\dist 2>$null | Select-Object FullName
+          ls -Recurse desktop\build\compose\binaries 2>$null | Select-Object FullName
         shell: pwsh
 
       - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe-installer
-          path: desktop/build/dist/*.exe
+          path: desktop/build/compose/binaries/main/exe/*.exe
           if-no-files-found: error
 
       - name: Upload Windows MSI
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi-installer
-          path: desktop/build/dist/*.msi
+          path: desktop/build/compose/binaries/main/msi/*.msi
           if-no-files-found: error
 
       # 额外：跨平台 fat-jar（有需要的用户可以直接 java -jar）
