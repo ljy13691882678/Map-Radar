@@ -31,7 +31,7 @@ class ReliableUdpReceiver(
     @Volatile private var beaconJob: Job? = null
     @Volatile private var readerJob: Job? = null
 
-    private val _state = MutableStateFlow(State.Stopped)
+    private val _state = MutableStateFlow<State>(State.Stopped)
     val state: StateFlow<State> = _state
 
     private val _localIp = MutableStateFlow("?")
@@ -138,15 +138,18 @@ class ReliableUdpReceiver(
             return "$a.$b.$c.$d"
         }
         // 兜底：从网络接口遍历
-        NetworkInterface.getNetworkInterfaces().iterator().forEachRemaining { ni ->
-            if (ni.isLoopback || !ni.isUp) return@forEachRemaining
-            ni.inetAddresses.iterator().forEachRemaining { addr ->
-                if (addr.hostAddress?.startsWith("192.168.") == true) {
-                    return addr.hostAddress!!
+        val result = run l@{
+            NetworkInterface.getNetworkInterfaces().iterator().forEachRemaining { ni ->
+                if (ni.isLoopback || !ni.isUp) return@forEachRemaining
+                ni.inetAddresses.iterator().forEachRemaining { addr ->
+                    if (addr.hostAddress?.startsWith("192.168.") == true) {
+                        return@l addr.hostAddress!!
+                    }
                 }
             }
+            null
         }
-        return "unknown"
+        return result ?: "unknown"
     }
 
     sealed class State {
