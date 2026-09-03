@@ -6,8 +6,13 @@ lifecycleKtx = "2.8.4"
 activityCompose = "1.9.2"
 composeBom = "2024.06.00"
 kotlinxSerialization = "1.6.3"
+kotlinxCoroutines = "1.8.1"
+# Compose Multiplatform (Desktop / iOS / 跨平台) —— 和 AndroidX Compose 是两条线，
+# 不能用 composeBom，必须用单独的 group/artifact/version
+composeMultiplatform = "1.6.10"
 
 [libraries]
+# ---- AndroidX (sender/receiver 两个 app 用) ----
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleKtx" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleKtx" }
@@ -18,9 +23,24 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+
+# ---- KotlinX (两端共用) ----
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+
+# ---- Compose Multiplatform (desktop 端用) ----
+compose-multiplatform-jvm = { group = "org.jetbrains.compose", name = "compose-jvm", version.ref = "composeMultiplatform" }
+compose-multiplatform-material3 = { group = "org.jetbrains.compose.material", name = "material3-jvm", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui = { group = "org.jetbrains.compose.ui", name = "ui-jvm", version.ref = "composeMultiplatform" }
+compose-multiplatform-ui-graphics = { group = "org.jetbrains.compose.ui", name = "ui-graphics-jvm", version.ref = "composeMultiplatform" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+# Kotlin Multiplatform —— desktop 端的核心
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+# Compose Multiplatform Gradle plugin，负责给各 target 自动注入 compose-jvm / compose-desktop 依赖
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+# 让 KMP 项目能打包成一个 fat-jar（desktop 端方便用户 java -jar）
+shadow = { id = "com.github.johnrengelman.shadow", version = "8.1.1" }

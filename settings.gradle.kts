@@ -3,6 +3,8 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        // Compose Multiplatform Gradle plugin 也在这里分发
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 }
 
@@ -11,12 +13,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Compose Multiplatform runtime
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
-    // Gradle 8.0+ 会自动把根目录 gradle/libs.versions.toml 暴露成 default "libs"
-    // 版本目录，不要再手动 create("libs") { from(...) }，否则会触发：
-    //   "Invalid catalog definition: you can only call the 'from' method a single time"
 }
 
 rootProject.name = "unicorn-realtime"
 include(":sender")
 include(":receiver")
+include(":desktop")
