@@ -1,3 +1,12 @@
+// 注意：Compose Desktop 原生打包 (MSI/EXE/DMG) 需要在对应 OS 的 runner 上执行：
+//   - .msi / .exe → windows-latest（WiX v3 已预装）
+//   - .dmg        → macos-latest
+//   - .deb / .rpm → ubuntu-latest
+// 本项目的 CI 里 desktop job 已经切到 windows-latest，所以 exe/msi 能直接产出。
+// 见 .github/workflows/build.yml 里的 desktop job (runs-on: windows-latest)。
+
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -23,38 +32,34 @@ kotlin {
     }
 }
 
-// Compose Desktop 应用入口声明
+// ============ Compose Desktop 原生打包 (EXE / MSI) ============
 compose.desktop {
     application {
         mainClass = "com.unicorn.desktop.MainKt"
+
+        nativeDistributions {
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+            packageName = "UnicornDesktopReceiver"
+            packageVersion = "1.1.0"   // MAJOR 必须 > 0（Compose Desktop hard requirement）
+        }
     }
 }
 
-// 自定义 fat-jar 任务：把所有 runtime 依赖 + 编译产物合并成一个 jar
-// Windows 用户下载后 `java -jar unicorn-desktop-receiver-fat.jar` 直接启动
+// ============ 额外：fat-jar（兜底，跨平台 java -jar） ============
 tasks.register<Jar>("fatJar") {
     group = "build"
-    description = "Assembles a fat jar with all runtime dependencies (for java -jar)"
+    description = "Assembles a fat jar with all runtime dependencies (java -jar unicorn-desktop-receiver-fat.jar)"
 
     archiveBaseName.set("unicorn-desktop-receiver")
     archiveClassifier.set("fat")
-    archiveVersion.set("1.0.0")
+    archiveVersion.set("1.1.0")
 
-    // 主类 manifest
-    manifest {
-        attributes["Main-Class"] = "com.unicorn.desktop.MainKt"
-    }
+    manifest { attributes["Main-Class"] = "com.unicorn.desktop.MainKt" }
 
-    // kotlin.jvm() 返回 KotlinJvmTarget。compilations["main"] 是 main compilation。
-    // compilation.output 拿到编译产物（classes dir + resources）
-    // compilation.runtimeDependencyFiles 拿到所有依赖（包括 Compose Desktop native 库）
     val mainCompilation = kotlin.jvm().compilations["main"]
     from(mainCompilation.output)
     from(mainCompilation.runtimeDependencyFiles)
 
-    // 处理元信息冲突 —— 同名 META-INF 文件保留第一个
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-    // 排除一些已知不兼容的签名字段
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }

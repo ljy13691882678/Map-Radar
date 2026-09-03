@@ -1,13 +1,12 @@
-name: Build All (Android + Desktop)
+name: Build All (Android APKs + Windows EXE)
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
 
-# ---- 环境变量 ----
-# ANDROID_HOME / ANDROID_SDK_ROOT 必须相同（AGP 8.5 禁止两个不一致值）
-# JAVA_HOME 用 ${{ github.workspace }}/jdk17，setup-java@v4 支持 path 参数
+# ---- Android 端 env：覆盖 runner 默认的 ANDROID_SDK_ROOT ----
+# AGP 8.5 禁止 ANDROID_HOME 和 ANDROID_SDK_ROOT 同时存在且值不同
 env:
   ANDROID_HOME: ${{ github.workspace }}/android-sdk
   ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
@@ -71,11 +70,11 @@ jobs:
           if-no-files-found: error
 
   # ==========================================================
-  #  Job 2 — Desktop fat-jar（Windows/macOS/Linux 通用）
-  #  只需要 JDK 17，不需要 Android SDK
+  #  Job 2 — Windows EXE / MSI（Compose Desktop 原生打包）
+  #  必须在 windows-latest runner 上跑 —— WiX v3 已预装在镜像里
   # ==========================================================
   desktop:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,20 +84,42 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          path: ${{ github.workspace }}/jdk17
 
       - name: Verify wrapper
         run: ./gradlew --version
+        shell: pwsh
 
-      - name: Build desktop fat-jar
+      - name: Build Windows installer (EXE + MSI)
+        # packageDistributionForCurrentOS —— Compose Desktop plugin 自动生成的任务
+        # 会产出 nativeDistributions 里 targetFormats(TargetFormat.Msi, TargetFormat.Exe) 指定的所有格式
         run: |
-          ./gradlew :desktop:fatJar --no-daemon --stacktrace
-          echo "=== produced ==="
-          ls -la desktop/build/libs/
+          ./gradlew :desktop:packageDistributionForCurrentOS --no-daemon --stacktrace
+          echo "=== dist output ==="
+          ls -Recurse desktop\build\dist 2>$null | Select-Object FullName
+        shell: pwsh
 
-      - name: Upload desktop fat-jar
+      - name: Upload Windows EXE
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-receiver-fatjar
+          name: windows-exe-installer
+          path: desktop/build/dist/*.exe
+          if-no-files-found: error
+
+      - name: Upload Windows MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi-installer
+          path: desktop/build/dist/*.msi
+          if-no-files-found: error
+
+      # 额外：跨平台 fat-jar（有需要的用户可以直接 java -jar）
+      - name: Build fat-jar (cross-platform fallback)
+        run: ./gradlew :desktop:fatJar --no-daemon --stacktrace
+        shell: pwsh
+
+      - name: Upload fat-jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-fat-jar
           path: desktop/build/libs/*.jar
           if-no-files-found: error
