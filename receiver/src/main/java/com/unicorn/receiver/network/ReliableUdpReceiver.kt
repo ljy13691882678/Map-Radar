@@ -138,18 +138,14 @@ class ReliableUdpReceiver(
             return "$a.$b.$c.$d"
         }
         // 兜底：从网络接口遍历
-        val result = run l@{
-            NetworkInterface.getNetworkInterfaces().iterator().forEachRemaining { ni ->
-                if (ni.isLoopback || !ni.isUp) return@forEachRemaining
-                ni.inetAddresses.iterator().forEachRemaining { addr ->
-                    if (addr.hostAddress?.startsWith("192.168.") == true) {
-                        return@l addr.hostAddress!!
-                    }
-                }
+        NetworkInterface.getNetworkInterfaces().toList().forEach { ni ->
+            if (ni.isLoopback || !ni.isUp) return@forEach
+            for (addr in ni.inetAddresses) {
+                val ip = addr.hostAddress
+                if (ip?.startsWith("192.168.") == true) return ip
             }
-            null
         }
-        return result ?: "unknown"
+        return "unknown"
     }
 
     sealed class State {
