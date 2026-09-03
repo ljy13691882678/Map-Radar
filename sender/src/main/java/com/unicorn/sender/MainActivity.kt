@@ -77,7 +77,7 @@ class SenderViewModel : AndroidViewModel(android.app.Application()) {
             }
 
             sendLoop = viewModelScope.launch {
-                while (isActive) {
+                while (this.coroutineContext.isActive) {
                     val ts = System.currentTimeMillis()
                     val frame = buildSimulatedFrame()
                     val bytes = FrameEncoder.encode(seqCounter, ts, frame)

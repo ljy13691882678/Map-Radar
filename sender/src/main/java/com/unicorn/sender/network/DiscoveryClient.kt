@@ -51,7 +51,7 @@ class DiscoveryClient(scope: CoroutineScope) {
     private suspend fun readLoop() {
         val s = socket ?: return
         val buf = ByteArray(1024)
-        while (isActive) {
+        while (ioScope.isActive) {
             try {
                 val p = DatagramPacket(buf, buf.size)
                 s.receive(p)
@@ -66,7 +66,7 @@ class DiscoveryClient(scope: CoroutineScope) {
                     }
                 }
             } catch (_: SocketException) {
-                if (!isActive) return
+                if (!ioScope.isActive) return
             } catch (_: Throwable) {
                 yield()
             }

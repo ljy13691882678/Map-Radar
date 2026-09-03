@@ -79,7 +79,7 @@ class ReliableUdpReceiver(
         val s = socket ?: return
         val beacon = "BEACON:receiver:$PORT:${_localIp.value}".toByteArray()
         val broadcast = InetSocketAddress("255.255.255.255", PORT)
-        while (isActive) {
+        while (ioScope.isActive) {
             runCatching {
                 val p = DatagramPacket(beacon, beacon.size, broadcast)
                 s.send(p)
@@ -91,7 +91,7 @@ class ReliableUdpReceiver(
     private suspend fun readerLoop() {
         val s = socket ?: return
         val buf = ByteArray(MAX_PACKET)
-        while (isActive) {
+        while (ioScope.isActive) {
             try {
                 val p = DatagramPacket(buf, buf.size)
                 s.receive(p)
@@ -99,7 +99,7 @@ class ReliableUdpReceiver(
                 val sender = InetSocketAddress(p.address, p.port)
                 handlePacket(data, sender)
             } catch (_: SocketException) {
-                if (!isActive) return
+                if (!ioScope.isActive) return
             } catch (t: Throwable) {
                 // 忽略单次异常，继续监听
                 yield()

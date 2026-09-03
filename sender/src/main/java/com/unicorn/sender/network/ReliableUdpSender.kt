@@ -3,6 +3,8 @@ package com.unicorn.sender.network
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetSocketAddress
@@ -101,7 +103,7 @@ class ReliableUdpSender(
     private suspend fun ackReader() {
         val s = socket ?: return
         val buf = ByteArray(64) // "ACK:1234567890" 足够
-        while (isActive) {
+        while (ioScope.isActive) {
             try {
                 val p = DatagramPacket(buf, buf.size)
                 s.receive(p)
@@ -121,7 +123,7 @@ class ReliableUdpSender(
                     gate.release()
                 }
             } catch (_: SocketException) {
-                if (!isActive) return
+                if (!ioScope.isActive) return
             } catch (_: Throwable) {
                 yield()
             }
@@ -129,7 +131,7 @@ class ReliableUdpSender(
     }
 
     private suspend fun retransmitLoop() {
-        while (isActive) {
+        while (ioScope.isActive) {
             val now = System.currentTimeMillis()
             val toResend = mutableListOf<Item>()
             synchronized(mutex) {
