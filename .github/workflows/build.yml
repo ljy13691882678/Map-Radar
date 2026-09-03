@@ -92,7 +92,7 @@ jobs:
 
       - name: Build desktop fat-jar
         run: |
-          ./gradlew :desktop:shadowJar --no-daemon --stacktrace
+          ./gradlew :desktop:fatJar --no-daemon --stacktrace
           echo "=== produced ==="
           ls -la desktop/build/libs/
 
@@ -100,5 +100,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-receiver-fatjar
-          path: desktop/build/libs/*-all.jar
+          path: desktop/build/libs/*.jar
           if-no-files-found: error
